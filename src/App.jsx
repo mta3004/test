@@ -14,9 +14,9 @@ import "./style/App.css";
 
 function shortenedCol(arrayofarray, indexlist) {
   return arrayofarray.map(function (array) {
-      return indexlist.map(function (idx) {
-          return array[idx];
-      });
+    return indexlist.map(function (idx) {
+      return array[idx];
+    });
   });
 }
 
@@ -26,11 +26,11 @@ const App = () => {
   const canvasRef = useRef(null);
   const webcam = new Webcam();
   // configs
-  const modelName = "yolov7";
-  const threshold = 0.80;
+  const modelName = "yolov8";
+  const threshold = 0.8;
   /**
    * Function to detect every frame loaded from webcam in video tag.
-   * @param {tf.GraphModel} model loaded YOLOv7 tensorflow.js model
+   * @param {tf.GraphModel} model loaded yolov8 tensorflow.js model
    */
 
   const detectFrame = async (model) => {
@@ -38,19 +38,18 @@ const App = () => {
     tf.engine().startScope();
     const input = tf.tidy(() => {
       const img = tf.image
-                  .resizeBilinear(tf.browser.fromPixels(videoRef.current), model_dim)
-                  .div(255.0)
-                  .transpose([2, 0, 1])
-                  .expandDims(0);
-      return img
+        .resizeBilinear(tf.browser.fromPixels(videoRef.current), model_dim)
+        .div(255.0)
+        .transpose([2, 0, 1])
+        .expandDims(0);
+      return img;
     });
 
     await model.executeAsync(input).then((res) => {
-
       res = res.arraySync()[0];
 
       var detections = non_max_suppression(res);
-      const boxes =  shortenedCol(detections, [0,1,2,3]);
+      const boxes = shortenedCol(detections, [0, 1, 2, 3]);
       const scores = shortenedCol(detections, [4]);
       const class_detect = shortenedCol(detections, [5]);
 
@@ -63,19 +62,22 @@ const App = () => {
   };
 
   useEffect(() => {
-    tf.loadGraphModel(`${window.location.origin}/${modelName}_web_model/model.json`, {
-      onProgress: (fractions) => {
-        setLoading({ loading: true, progress: fractions });
-      },
-    }).then(async (yolov7) => {
+    tf.loadGraphModel(
+      `${window.location.origin}/${modelName}_web_model/model.json`,
+      {
+        onProgress: (fractions) => {
+          setLoading({ loading: true, progress: fractions });
+        },
+      }
+    ).then(async (yolov8) => {
       // Warmup the model before using real data.
-      const dummyInput = tf.ones(yolov7.inputs[0].shape);
-      await yolov7.executeAsync(dummyInput).then((warmupResult) => {
+      const dummyInput = tf.ones(yolov8.inputs[0].shape);
+      await yolov8.executeAsync(dummyInput).then((warmupResult) => {
         tf.dispose(warmupResult);
         tf.dispose(dummyInput);
 
         setLoading({ loading: false, progress: 1 });
-        webcam.open(videoRef, () => detectFrame(yolov7));
+        webcam.open(videoRef, () => detectFrame(yolov8));
       });
     });
   }, []);
@@ -91,8 +93,7 @@ const App = () => {
       )}
 
       <div className="content">
-        <video autoPlay playsInline muted ref={videoRef} id="frame"
-        />
+        <video autoPlay playsInline muted ref={videoRef} id="frame" />
         <canvas width={640} height={640} ref={canvasRef} />
       </div>
     </div>
